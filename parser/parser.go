@@ -3,7 +3,7 @@ package parser
 import (
 	"bufio"
 	"fmt"
-	"log"
+	// "log" // Removed as it's not currently used
 	"os"
 	"regexp"
 	"strings" // Added for strings.Contains
@@ -13,13 +13,13 @@ import (
 
 // Pre-compile regexes for efficiency
 var (
-	reClientUserinfoChanged = regexp.MustCompile(`^.*?ClientUserinfoChanged: (\d+) n\\([^\\\\]+)\\.*playerNameIsHere>([^<]+)<\\x{005c}*t\\(\\d+\\).*$|^.*?ClientUserinfoChanged: (\d+) n\\(([^\\\\]+))\\\\t.*`)
-	reKill = regexp.MustCompile(`^.*?Kill: (\d+) (\d+) (\d+): (.*) killed (.*) by (MOD_[A-Z_]+)$`)
+	reClientUserinfoChanged = regexp.MustCompile(`^.*?ClientUserinfoChanged: (\d+) n\\([^\\]+)\\.*playerNameIsHere>([^<]+)<\\x{005c}*t\(\d+\).*$|^.*?ClientUserinfoChanged: (\d+) n\\(([^\\]+))\\\\t.*`)
+	reKill                  = regexp.MustCompile(`^.*?Kill: (\d+) (\d+) (\d+): (.*) killed (.*) by (MOD_[A-Z_]+)$`)
 )
 
 // ParseLogFile reads and parses the Quake log file.
-// It returns a map of game data, keyed by game ID, and an error if any occurs.
-func ParseLogFile(filePath string) (map[string]*Game, error) {
+// It returns a map of game data, keyed by game ID (int), and an error if any occurs.
+func ParseLogFile(filePath string) (map[int]*Game, error) { // Changed return type
 	// fmt.Println("Parsing log file:", filePath) // Can be noisy
 
 	file, err := os.Open(filePath)
@@ -28,9 +28,9 @@ func ParseLogFile(filePath string) (map[string]*Game, error) {
 	}
 	defer file.Close()
 
-	games := make(map[string]*Game)
+	games := make(map[int]*Game) // Changed map type
 	var currentGame *Game
-	gameCounter := 0
+	gameCounter := 0 // This will be the int ID
 
 	scanner := bufio.NewScanner(file)
 	lineNumber := 0
@@ -46,39 +46,40 @@ func ParseLogFile(filePath string) (map[string]*Game, error) {
 			// Finalize previous game if any (though ShutdownGame should handle this)
 			if currentGame != nil {
 				// This case should ideally not be hit if logs are well-formed with ShutdownGame
-				// log.Printf("Warning: InitGame encountered while a game (%s) was already in progress. Finalizing previous.", currentGame.ID)
+				// log.Printf("Warning: InitGame encountered while a game (%d) was already in progress. Finalizing previous.", currentGame.ID) // Changed %s to %d
 				currentGame = nil
 			}
 			gameCounter++
-			gameID := fmt.Sprintf("game_%d", gameCounter)
+			gameID := gameCounter // gameID is now int
 			currentGame = &Game{
-				ID:            gameID,
+				ID:            gameID, // Changed
 				TotalKills:    0,
 				Players:       make(map[string]*Player),
 				KillsByPlayer: make(map[string]int),
 				KillsByMeans:  make(map[string]int),
 				ClientNames:   make(map[string]string),
 			}
-			games[gameID] = currentGame
-			// fmt.Printf("Started %s\n", gameID) // Optional: for debugging
+			games[gameID] = currentGame // Changed
+			// fmt.Printf("Started game %d\n", gameID) // Optional: for debugging
 		} else if strings.Contains(line, "ShutdownGame:") {
 			if currentGame != nil {
+				// gameIDToPrint := currentGame.ID // Store ID before nil if needed for logging
 				currentGame = nil // End of current game processing
-				// fmt.Printf("Ended %s\n", currentGame.ID) // Optional: for debugging
+				// fmt.Printf("Ended game %d\n", gameIDToPrint) // Optional: for debugging
 			}
 		} else if currentGame != nil { // Process lines only if we are inside a game
 			// Attempt to parse ClientUserinfoChanged
 			matches := reClientUserinfoChanged.FindStringSubmatch(line)
 			if len(matches) > 0 {
 				var clientID, playerName string
-				// The regex has two alternate patterns due to observed variations in log format.
+				// The regex has two alternate patterns.
 				// Check which group of capturing parentheses has the match.
-				if matches[1] != "" && matches[2] != "" { //playerNameIsHere variant
+				if matches[1] != "" && matches[3] != "" { // playerNameIsHere variant (use group 3 for name)
 					clientID = matches[1]
-					playerName = matches[2]
-				} else if matches[3] != "" && matches[4] != "" { // standard n\\NAME\\t variant
-					clientID = matches[3]
-					playerName = matches[4]
+					playerName = matches[3]
+				} else if matches[4] != "" && matches[6] != "" { // standard n\\NAME\\t variant (use group 6 for name)
+					clientID = matches[4]
+					playerName = matches[6]
 				}
 
 				if clientID != "" && playerName != "" {

@@ -1,15 +1,13 @@
 package parser
 
-// Game stores all information for a single game match.
+// Game struct now uses int for ID
 type Game struct {
-	ID            string             // e.g., "game_1"
-	TotalKills    int                // Total kills in the game
-	Players       map[string]*Player // Player name -> Player details (stores latest known player object by name)
-	KillsByPlayer map[string]int     // Player name -> kill count (net score)
-	KillsByMeans  map[string]int     // Death cause -> count (for bonus)
-
-	// Internal tracking, not directly part of the JSON output structure
-	ClientNames map[string]string // clientID -> most recent playerName for this game
+	ID            int // Changed from string to int
+	TotalKills    int
+	Players       map[string]*Player
+	KillsByPlayer map[string]int
+	KillsByMeans  map[string]int
+	ClientNames   map[string]string
 }
 
 // Player stores information about a player.

@@ -11,46 +11,53 @@ import (
 
 // GameReport defines the structure for the JSON output for a single game.
 // This includes the main report and the kills_by_means for the bonus.
+// It now includes BSON tags for MongoDB storage.
 type GameReport struct {
-	TotalKills   int              `json:"total_kills"`
-	Players      []string         `json:"players"`
-	Kills        map[string]int   `json:"kills"`
-	KillsByMeans map[string]int   `json:"kills_by_means,omitempty"` // omitempty if we only want to show it if present
+	TotalKills   int              `json:"total_kills" bson:"total_kills"`
+	Players      []string         `json:"players" bson:"players"`
+	Kills        map[string]int   `json:"kills" bson:"kills"`
+	KillsByMeans map[string]int   `json:"kills_by_means,omitempty" bson:"kills_by_means,omitempty"`
 }
 
-// GenerateReports prints the game reports to standard output in the specified JSON format.
-func GenerateReports(games map[string]*parser.Game) {
-	fmt.Println("\n--- Game Reports ---")
-
-	if len(games) == 0 {
-		fmt.Println("No game data to report.")
-		return
-	}
-
-	// Prepare a map to hold the structured reports for JSON marshalling
-	structuredGameReports := make(map[string]GameReport)
+// FormatGameData converts the raw parsed game data into a map of GameReport structs,
+// suitable for JSON marshalling or database storage.
+// It now accepts map[int]*parser.Game and returns map[int]GameReport.
+func FormatGameData(games map[int]*parser.Game) map[int]GameReport {
+	structuredGameReports := make(map[int]GameReport)
 
 	for gameID, parsedGameData := range games {
-		playerNames := make([]string, 0, len(parsedGameData.Players)) // Get players from Players map for consistency
+		playerNames := make([]string, 0, len(parsedGameData.Players))
 		for name := range parsedGameData.Players {
-			if name != "<world>" { // Ensure <world> is not listed as a player
+			if name != "<world>" { 
 				playerNames = append(playerNames, name)
 			}
 		}
-		sort.Strings(playerNames) // Sort player names for consistent output
+		sort.Strings(playerNames) 
 
 		report := GameReport{
 			TotalKills:   parsedGameData.TotalKills,
 			Players:      playerNames,
-			Kills:        parsedGameData.KillsByPlayer, // This already has player scores
+			Kills:        parsedGameData.KillsByPlayer,
 			KillsByMeans: parsedGameData.KillsByMeans,
 		}
 		structuredGameReports[gameID] = report
 	}
+	return structuredGameReports
+}
 
-	jsonData, err := json.MarshalIndent(structuredGameReports, "", "  ")
+// PrintGameReportsToConsole takes the formatted game reports and prints them to standard output as JSON.
+// It now accepts map[int]GameReport.
+func PrintGameReportsToConsole(reports map[int]GameReport) {
+	fmt.Println("\n--- Game Reports (Console Output) ---")
+
+	if len(reports) == 0 {
+		fmt.Println("No game data to report.")
+		return
+	}
+
+	jsonData, err := json.MarshalIndent(reports, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marshalling game reports to JSON: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error marshalling game reports to JSON for console: %v\n", err)
 		return
 	}
 
