@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quake Log Parser Frontend</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Quake Log API Interface</h1>
+
+    <div class="container">
+        <!-- Get All Games -->
+        <section id="all-games-section">
+            <h2>All Games</h2>
+            <button id="loadAllGamesBtn">Load All Games</button>
+            <div id="allGamesOutput" class="output-area"></div>
+        </section>
+
+        <!-- Game by ID Operations -->
+        <section id="game-by-id-section">
+            <h2>Game by ID</h2>
+            <label for="gameIdInput">Game ID:</label>
+            <input type="text" id="gameIdInput" placeholder="Enter Game ID">
+            <button id="getGameByIdBtn">Get Game by ID</button>
+            <button id="deleteGameByIdBtn">Delete Game by ID</button>
+            <div id="gameByIdOutput" class="output-area"></div>
+        </section>
+
+        <!-- Upload Log File -->
+        <section id="upload-section">
+            <h2>Upload Log File</h2>
+            <input type="file" id="logFileInput">
+            <button id="uploadLogBtn">Upload Log</button>
+            <div id="uploadOutput" class="output-area"></div>
+        </section>
+
+        <!-- Delete All Games -->
+        <section id="delete-all-section">
+            <h2>Delete All Games</h2>
+            <button id="deleteAllGamesBtn">Delete All Games</button>
+            <div id="deleteAllOutput" class="output-area"></div>
+        </section>
+
+        <!-- Global Player Ranking -->
+        <section id="player-ranking-section">
+            <h2>Global Player Ranking</h2>
+            <button id="loadPlayerRankingBtn">Load Player Ranking</button>
+            <div id="playerRankingOutput" class="output-area"></div>
+        </section>
+
+
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

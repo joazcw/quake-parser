@@ -1,0 +1,38 @@
+# Git version control files
+.git
+.gitignore
+
+# Docker specific files (already in the context, so don't include in image layers)
+Dockerfile
+.dockerignore
+
+# Go build outputs (the Dockerfile handles the build)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Frontend directory (if you have one and it's not meant to be part of this backend image)
+frontend/
+
+# IDE / Editor specific folders
+.idea/
+.vscode/
+
+# OS-specific files
+*.DS_Store
+Thumbs.db
+
+# Log files (unless specifically needed inside the image for some reason)
+*.log
+
+# Test files and outputs (tests are usually run outside the final image)
+*_test.go
+coverage.*
+
+# Readme or other markdown files, often not needed in the final image
+*.md
+
+# Local environment configuration (e.g., .env files)
+.env 

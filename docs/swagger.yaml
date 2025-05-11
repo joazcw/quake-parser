@@ -1,0 +1,226 @@
+basePath: /
+definitions:
+  main.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  main.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  main.UploadResponse:
+    properties:
+      games_processed:
+        type: integer
+      message:
+        type: string
+    type: object
+  reporter.GameReport:
+    properties:
+      id:
+        type: integer
+      kills:
+        additionalProperties:
+          type: integer
+        type: object
+      kills_by_means:
+        additionalProperties:
+          type: integer
+        type: object
+      players:
+        items:
+          type: string
+        type: array
+      total_kills:
+        type: integer
+    type: object
+  reporter.PlayerRankEntry:
+    properties:
+      player_name:
+        type: string
+      total_kills:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is an API for parsing Quake 3 Arena log files and providing game
+    statistics.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Quake Log Parser API
+  version: "1.0"
+paths:
+  /games:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently removes all game reports from the database.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All game reports deleted successfully
+          schema:
+            $ref: '#/definitions/main.SuccessResponse'
+        "500":
+          description: Failed to delete all game reports
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Delete all game reports
+      tags:
+      - games
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of all game reports stored in the database, sorted
+        by game ID.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved list of game reports
+          schema:
+            items:
+              $ref: '#/definitions/reporter.GameReport'
+            type: array
+        "500":
+          description: Failed to retrieve game reports
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Get all game reports
+      tags:
+      - games
+  /games/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently removes a single game report based on its unique ID.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Game deleted successfully
+          schema:
+            $ref: '#/definitions/main.SuccessResponse'
+        "400":
+          description: Invalid game ID format
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+        "404":
+          description: Game not found
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+        "500":
+          description: Failed to delete game report
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Delete a specific game report by its ID
+      tags:
+      - games
+    get:
+      consumes:
+      - application/json
+      description: Retrieves full details for a specific game based on its unique
+        ID.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved game report
+          schema:
+            $ref: '#/definitions/reporter.GameReport'
+        "400":
+          description: Invalid game ID format
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+        "404":
+          description: Game not found
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+        "500":
+          description: Failed to retrieve game data
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Get a single game report by its ID
+      tags:
+      - games
+  /games/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a game log file (.log). The server parses it, generates
+        game reports, and stores them.
+      parameters:
+      - description: The Quake log file to upload
+        in: formData
+        name: logFile
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Log file processed. No games found to report (already OK if
+            file is valid but empty of games)
+          schema:
+            $ref: '#/definitions/main.UploadResponse'
+        "201":
+          description: Log file processed and game(s) stored successfully
+          schema:
+            $ref: '#/definitions/main.UploadResponse'
+        "400":
+          description: Error retrieving/parsing uploaded file or invalid file format
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+        "500":
+          description: Server error during file processing or storage
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Upload a Quake log file for processing
+      tags:
+      - games
+  /playersranking:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of players ranked by their total kills across
+        all recorded games.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved player rankings
+          schema:
+            items:
+              $ref: '#/definitions/reporter.PlayerRankEntry'
+            type: array
+        "500":
+          description: Failed to retrieve player rankings
+          schema:
+            $ref: '#/definitions/main.ErrorResponse'
+      summary: Get aggregated player rankings across all games
+      tags:
+      - rankings
+schemes:
+- http
+swagger: "2.0"

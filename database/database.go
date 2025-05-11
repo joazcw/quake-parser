@@ -5,25 +5,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os" // Added for environment variables
 	// "time" // Removed as it's not currently used in this file
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"quake_log_parser/reporter" // Ensure this import is present
 	// We will need "quake_log_parser/reporter" for GameReport type in StoreGameReports
 )
 
 const (
-	DefaultMongoDBURI = "mongodb://localhost:27017"
+	DefaultMongoDBURI         = "mongodb://localhost:27017"
+	defaultDatabaseName       = "quake_reports_db" // Moved from main.go and made unexported
+	defaultGameReportsCollection = "game_reports"     // Moved from main.go and made unexported
 )
 
 // ConnectDB establishes a connection to MongoDB and returns the client.
 // The caller is responsible for deferring client.Disconnect().
 func ConnectDB(ctx context.Context, uri string) (*mongo.Client, error) {
-	if uri == "" {
+	// Get MongoDB URI from environment variable if available
+	envMongoURI := os.Getenv("MONGO_URI")
+	if envMongoURI != "" {
+		uri = envMongoURI
+	} else if uri == "" { // If no URI passed and no ENV var, use default
 		uri = DefaultMongoDBURI
 	}
-	
+
+	log.Printf("Attempting to connect to MongoDB at: %s", uri) // Log the URI being used
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to MongoDB at %s: %w", uri, err)
@@ -39,6 +49,11 @@ func ConnectDB(ctx context.Context, uri string) (*mongo.Client, error) {
 	}
 	fmt.Println("Successfully connected and pinged MongoDB at", uri)
 	return client, nil
+}
+
+// GetGameReportsCollection returns a handle to the default collection used for storing game reports.
+func GetGameReportsCollection(client *mongo.Client) *mongo.Collection {
+	return client.Database(defaultDatabaseName).Collection(defaultGameReportsCollection)
 }
 
 // StoreGameReports takes a map of game reports and stores them in the specified MongoDB collection.
@@ -89,7 +104,8 @@ func PrintAllStoredGames(ctx context.Context, collection *mongo.Collection) erro
 		return fmt.Errorf("MongoDB collection is nil")
 	}
 
-	fmt.Println("\n--- All Stored Game Reports from MongoDB (Sorted by Game ID) ---")
+	// Use internal constant for collection name in log message, or keep collection.Name()
+	fmt.Printf("\n--- All Stored Game Reports from MongoDB collection '%s' (Sorted by Game ID) ---\n", defaultGameReportsCollection)
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"_id", 1}}) // Sort by _id in ascending order
@@ -128,13 +144,59 @@ func PrintAllStoredGames(ctx context.Context, collection *mongo.Collection) erro
 	return nil
 }
 
+// GetAllGameReports retrieves all game reports from the collection, sorted by game ID (_id).
+func GetAllGameReports(ctx context.Context, collection *mongo.Collection) ([]reporter.GameReport, error) {
+	if collection == nil {
+		return nil, fmt.Errorf("MongoDB collection is nil")
+	}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"_id", 1}}) // Sort by _id (gameID) in ascending order
+
+	cursor, err := collection.Find(ctx, bson.D{{}}, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find documents in MongoDB: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var reports []reporter.GameReport
+	if err = cursor.All(ctx, &reports); err != nil {
+		return nil, fmt.Errorf("failed to decode documents into GameReport slice: %w", err)
+	}
+
+	// If reports slice is nil (e.g. collection is empty and cursor.All makes it nil not empty slice)
+	// ensure we return an empty slice instead of nil for JSON marshalling consistency.
+	if reports == nil {
+		reports = []reporter.GameReport{}
+	}
+
+	return reports, nil
+}
+
+// DeleteGameReportByID deletes a single game report by its ID from MongoDB.
+// It returns the number of documents deleted (0 or 1) and an error if any occurs.
+func DeleteGameReportByID(ctx context.Context, collection *mongo.Collection, gameID int) (int64, error) {
+	if collection == nil {
+		return 0, fmt.Errorf("MongoDB collection is nil")
+	}
+
+	filter := bson.M{"_id": gameID}
+	result, err := collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete game report with ID %d: %w", gameID, err)
+	}
+
+	return result.DeletedCount, nil
+}
+
 // DeleteAllGameReportsFromDB removes all documents from the specified MongoDB collection.
 func DeleteAllGameReportsFromDB(ctx context.Context, collection *mongo.Collection) error {
 	if collection == nil {
 		return fmt.Errorf("MongoDB collection is nil")
 	}
 
-	fmt.Printf("\nAttempting to delete all documents from collection '%s'...\n", collection.Name())
+	// Use internal constant for collection name in log message, or keep collection.Name()
+	fmt.Printf("\nAttempting to delete all documents from collection '%s' (%s)...\n", collection.Name(), defaultGameReportsCollection)
 
 	// An empty filter bson.D{{}} matches all documents in the collection.
 	result, err := collection.DeleteMany(ctx, bson.D{{}})
@@ -144,6 +206,28 @@ func DeleteAllGameReportsFromDB(ctx context.Context, collection *mongo.Collectio
 
 	fmt.Printf("Successfully deleted %d document(s) from collection '%s'.\n", result.DeletedCount, collection.Name())
 	return nil
+}
+
+// GetGameReportByID retrieves a single game report by its ID from MongoDB.
+// It returns the report and nil on success.
+// It returns (nil, nil) if the document is not found.
+// It returns (nil, error) for other errors.
+func GetGameReportByID(ctx context.Context, collection *mongo.Collection, gameID int) (*reporter.GameReport, error) {
+	if collection == nil {
+		return nil, fmt.Errorf("MongoDB collection is nil")
+	}
+
+	var report reporter.GameReport
+	filter := bson.M{"_id": gameID}
+
+	err := collection.FindOne(ctx, filter).Decode(&report)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil // Not found
+		}
+		return nil, fmt.Errorf("failed to find or decode game report with ID %d: %w", gameID, err)
+	}
+	return &report, nil
 }
 
 // Note: The StoreGameReports function expects 'reports' to be map[string]interface{}

@@ -9,16 +9,6 @@ import (
 	"quake_log_parser/parser" // Import the parser package
 )
 
-// GameReport defines the structure for the JSON output for a single game.
-// This includes the main report and the kills_by_means for the bonus.
-// It now includes BSON tags for MongoDB storage.
-type GameReport struct {
-	TotalKills   int              `json:"total_kills" bson:"total_kills"`
-	Players      []string         `json:"players" bson:"players"`
-	Kills        map[string]int   `json:"kills" bson:"kills"`
-	KillsByMeans map[string]int   `json:"kills_by_means,omitempty" bson:"kills_by_means,omitempty"`
-}
-
 // FormatGameData converts the raw parsed game data into a map of GameReport structs,
 // suitable for JSON marshalling or database storage.
 // It now accepts map[int]*parser.Game and returns map[int]GameReport.
@@ -32,9 +22,10 @@ func FormatGameData(games map[int]*parser.Game) map[int]GameReport {
 				playerNames = append(playerNames, name)
 			}
 		}
-		sort.Strings(playerNames) 
+		sort.Strings(playerNames)
 
 		report := GameReport{
+			ID:           gameID,
 			TotalKills:   parsedGameData.TotalKills,
 			Players:      playerNames,
 			Kills:        parsedGameData.KillsByPlayer,
@@ -65,4 +56,11 @@ func PrintGameReportsToConsole(reports map[int]GameReport) {
 
 	// TODO:
 	// 1. Implement player ranking report (to be printed after the game reports).
+}
+
+// PlayerRankEntry defines the structure for a player's entry in the global ranking.
+// This is used by the /playersranking endpoint.
+type PlayerRankEntry struct {
+	PlayerName string `json:"player_name"`
+	TotalKills int    `json:"total_kills"`
 } 
