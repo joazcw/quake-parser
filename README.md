@@ -35,7 +35,6 @@ A robust API for parsing and analyzing Quake 3 Arena game logs, built with Go. T
 ## Prerequisites
 
 - Docker 
-- Python (simple local web server for the frontend)
 
 ## Installation
 
