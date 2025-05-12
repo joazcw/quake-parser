@@ -43,40 +43,15 @@ A robust API for parsing and analyzing Quake 3 Arena game logs, built with Go. T
 
 1. Build the Docker image:
    ```bash
-   docker build -t quake-log-parser .
+   docker-compose up -d --build
    ```
 
-2. Create a Docker network for the app and database:
-   ```bash
-   docker network create quake-network
-   ```
+Open http://localhost:8000 in your browser. 
 
-3. Start MongoDB:
-   ```bash
-   docker run -d --name mongodb --network quake-network mongo:latest
-   ```
+Swagger documentation at http://localhost:8080/swagger/index.html
 
-4. Start the application:
-   ```bash
-   docker run -d --name quake-api --network quake-network -p 8080:8080 -e MONGO_URI='mongodb://mongodb:27017' quake-log-parser
-   ```
-
-5. Access the API at http://localhost:8080 and the Swagger documentation at http://localhost:8080/swagger/index.html
-
-### Web Interface
-
-1. Open a new terminal
-
-2. Run this command 
-```bash
-
-cd frontend
-python -m http.server 8000
-```
-Then open http://localhost:8000 in your browser.
 
 Upload the file "games.log" (inside "data" folder) in the "Upload log file" on the frontend
-
 
 ## Project Structure
 

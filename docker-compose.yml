@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-app
+    ports:
+      - "8000:8000"
+    networks:
+      - quake-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quake-api
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_URI: 'mongodb://mongodb:27017'
+    depends_on:
+      - mongodb
+    networks:
+      - quake-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - quake-network
+
+networks:
+  quake-network:
+    driver: bridge
+
+volumes:
+  mongo-data: 
