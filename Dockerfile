@@ -16,6 +16,9 @@ RUN go mod verify
 # This will copy main.go, routers.go, and the parser/, reporter/, database/ packages
 COPY . .
 
+# Tidy the modules to ensure go.mod and go.sum are up to date
+RUN go mod tidy
+
 # Build the Go app
 # CGO_ENABLED=0 creates a statically-linked binary
 # -ldflags "-w -s" strips debug symbols and information, reducing binary size
