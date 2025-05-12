@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data && data.length > 0) {
                 let rankingHtml = '<h3>Player Rankings:</h3><ul>';
                 data.forEach(player => {
-                    rankingHtml += `<li>${player.name}: ${player.score} kills</li>`;
+                    rankingHtml += `<li>${player.player_name}: ${player.total_kills} kills</li>`;
                 });
                 rankingHtml += '</ul>';
                 playerRankingOutput.innerHTML = rankingHtml; // Use innerHTML to render HTML
